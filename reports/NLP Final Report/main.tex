@@ -1,0 +1,95 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{Main Locations Extraction in Litrature}
+\author{Ohad Edelstein (ID 039065313), Nitzan Katz (ID 318446929)}
+\date{Submitted as final project report for NLP, IDC, 2020}
+
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{wrapfig}
+\usepackage{xcolor,colortbl}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+The purpose of this project is to extract the locations related to main characters in books. This may contribute to a bigger task of making a site-seeing route based on the route of main characters in archaeology books. The project includes POS (part of speech) tagging and NER (name entity recognition) in books, characters relational graph based on sentiment analysis and characters-locations co-occurrences graph. We mostly rely on commonly used models for solving this issue rather than inventing new models for the specific tasks.
+
+\subsection{Related Works}
+The main work we referred to is a github project\cite{hzjken2019char} in which the author extracted the characters out of the harry potter series, and made two types of relational graph between them. One graph is made based on co-occurrences of the characters in the books, and the other was made using sentiment analysis over the sentences more than one character was involved in order to determine the nature of the relationship (whether it's good or bad, and how strong it is). We thought about taking this concept and checking if the characters with the most relations to other characters can be classified as the main characters, and furthermore use the co-occurrences of those characters to locations to determine the main locations from the book.
+
+\section{Solution}
+\subsection{General approach}
+We started the project with a wide internet research on character detections in books. The initial idea was to find a \newline
+Once we have our dataset, we need to make the recurrent neural network we want to work on. There we had to take some logistic decisions for making the netowrk work properly on both learning and testing stages.\newline
+After we finish training the network, we need to gather testing results in the same way done in the original paper. With those results we can compare our model to the one presented before and see if our hypothesis is correct, that by using historic data we can improve our model prediction.
+\subsection{Design}
+For the work, all the code and runtime environment where written and executed in google colab using pytorch lib as our neural network base framework. The first challenge we had to face was reproducing the results from the original paper. That proved to be tricky, since the paper described verbally some modifications that were applied over the dataset (Like filtering of empty rows of sensors, and removal of some labels). In the end of the reproduction of the process, we achieved results that seem better than those shown in the original paper. We'd use both our results and the original results as a base to compare to later on.
+This results can be seen in details in notebook: \href{https://colab.research.google.com/drive/18adUIvkYi8E6JQyZsbEtx6wgEXZr3hnX#scrollTo=cweKasXbbpH6}{analyze\_model\_results.ipynb} \par
+For the data modification that was required for our experiments, we arbitrary decided to go with time-series length of 10 minutes (we started with a length of 20 minutes, but the amount of data generated crashed out colab over and over again on out-of-memory).
+The method for generating the data was a sliding-window of 10 minutes with a single label result of the last minute.
+Since the dataset was already big to begin with, making overlapping sets of 10 samples resulted in a dataset that is roughly 10 times bigger, which consumed a lot of processing time, storing space, and later on made the training time for each epoch take much longer than we first anticipated.\par
+A technical issue that followed that, was the running time and computing power we had in google colab. We ended up saving the data in separate files and creating "snapshots" of the trained neural network for when the machine is no longer allocated for us. This way, we didn't have to load all the information at once and cause google colab crash because it has no memory, and it enabled us to pause and continue training at different times.\par
+It should also be taken into consideration that when originally recreating the experiment from the original paper, there was no meaning to where the sample came from, either if it's participant ID or the time it was taken at. That's because each sample it looked upon individually to predict the context.
+We ended up running the training of the RNN model for more then \textbf{24 hours} on 5 colabs in parallel.
+We needed 5 colabs because the paper used 5-folds method for evaluating the model and we wanted to follow their results.
+
+\section{Experimental results}
+ At First, we wanted to see that we can run and work with\newline
+ The way used to measure the success of the model was done with Balanced accuracy (BA) scoring.
+ BA is a measure that accounts for the tradeoff between true positive rate and true negative rate: BA=(TPR+TNR)/2.
+The comparison of the original results and our reproduction is shown in Table 3 \& 4 and in the notebook: \href{https://colab.research.google.com/drive/18adUIvkYi8E6JQyZsbEtx6wgEXZr3hnX#scrollTo=cweKasXbbpH6}{analyze\_model\_results.ipynb}.\par
+ 
+ For the data processing, we first filtered empty rows from the dataset, and then made sequences of 10 following samples from each participant.\par
+ Then the RNN model, we took inspiration from an example available online on \href{https://stackabuse.com/time-series-prediction-using-lstm-with-pytorch-in-python/}{flights sales prediction} (https://stackabuse.com/time-series-prediction-using-lstm-with-pytorch-in-python/). We created an LSTM based model, with a hidden layer of size 100, which we selected arbitrarily to test our model with. We used MSE loss function and Adam optimizer. For the sake of sticking to the example to some level, and with our base knowledge on neural networks, we limited the model to output just one label. We chose the "OR\_indoors" label (Index 20 at Table 2) as it was the label with the most samples having this label initiated. We used the same 5-folds division to have 5 different trained models accordingly. It was done so we'd make sure the dataset used to train the model remain the same. A major difference between this model to the original one from the design point of view, is that we didn't split the process into 2 layers of prediction, a prediction per sensor and then a prediction according to the sensor's predictions. We just gave as input all the samples from all the sensors to  predict the specific label. Each fold was trained on 50 epochs over the data, then we took the average of the results of the folds for the label. At each epoch we saved the network using pickle, for the network state to remain even if we lose running context in the notebook.\par
+ The RNN model is better than the original one is some aspects, but worse in other (as seen in Table 1). The BA score which was the main indication for one model being better than another resulted better for the original model. But when looking at Accuracy, Recall and F1 scores the RNN model resulted in better results.
+
+\section{Discussion}
+In the time given for the work we only managed to test two label - we remind that we agreed to supply a single label in our proposal - but to prove the improvement our model provides it is essential to test the method on the rest of the labels as well. 
+We have a few leads on how we can improve our model prediction:
+\begin{itemize}
+  \item Test with different window frames - 5 minutes, 10 minutes, 20 minutes. adjusting the length of sample sequences can make predictions better or worse, the length 10 that we chose was convenient for us given the resources we had, but it doesn't have to be, and probably isn't, the best length for sequences for training the network.
+  \item Test with short and long look back. meaning take for example a 5 minute window and append to it a 5 minute window from a different day and/or the same day in a different week.  
+  \item Play with the parameters of the LSTM network: more hidden layers, more hidden cells.
+  \item Try to manually create the hierarchy described in the paper. 
+  Although making a more complex neural network should be essentially the same as a bigger network that receives all the sensors inputs at once. So it might not make a significant change on the performance of the model.
+  \item Filter the data better. It's also possible to better collect the data by forcing sample sequences to have a defined maximum time between samples, we just took 10 following samples, but there are some cases in the data where the time passed between two following samples is much greater than a minute (few hours and more!).
+  \item Different Evaluation tools - we considered changing the loss function and optimizer that we used for the network, as we used the ones from the example we went with it and didn't experiment with other known available types.
+\end{itemize}
+
+
+\section{Code}
+The \href{https://drive.google.com/open?id=1iAhgPfeNmEoKRc1YftgM3Oi5DFPu6URK}{code of the project} is available here.\par
+https://drive.google.com/open?id=1iAhgPfeNmEoKRc1YftgM3Oi5DFPu6URK
+The files in the drive are the following:
+\subsection{paper\_results.csv}
+The results of the model from the original paper. Stored in a csv file with a row for each label, and a column for the different results for each step in the model.
+
+\subsection{model-prepare-regular-model.ipynb}
+Preparing the data for reproducing the original model.
+
+\subsection{model\_multi\_context\_prediction.ipynb}
+Running the 5 trained LR models on the 5 folds of the tested data
+The reproduction of the model from the original paper. At the end of this notebook the reproduced data is saved in a pickle.
+
+\subsection{model-prepare-deep-learning-model.ipynb}
+Preparing the data for training and testing the RNN. The information is stored in pickle files and later used to train the network.
+
+\subsection{model-deep-learning-fold\_runner\_folds.ipynb}
+The training of the RNN model for the OR\_indoors label.
+
+\subsection{model-deep-learning-fold\_runner\_predict.ipynb}
+Running the 5 trained DP models on the 5 folds of the tested data
+
+\subsection{analyze\_model\_results.ipynb}
+Summarize all the comparisons done in the project, either if it's the reproduction results against the original results or the RNN model versus the reproduced results of the original model.
+
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}
