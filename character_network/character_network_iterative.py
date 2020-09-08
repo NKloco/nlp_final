@@ -4,7 +4,6 @@ Created on Tues Oct 16 23:33:04 2018
 @author: Ken Huang
 """
 
-import spacy
 import pandas as pd
 import numpy as np
 import networkx as nx
@@ -521,6 +520,7 @@ def read_text(novel_folder, novel_name):
         book = f.read().replace('\r', ' ').replace('\n', ' ').replace("\'", "'")
     return book
 
+
 def name_entity_recognition(nlp_func, sentence, labels=None):
     '''
     A function to retrieve name entities in a sentence.
@@ -549,6 +549,7 @@ def name_entity_recognition(nlp_func, sentence, labels=None):
 
     return name_entity
 
+
 def iterative_NER(nlp_func, sentence_list, threshold_rate=0.0005):
     '''
     A function to execute the name entity recognition function iteratively. The purpose of this
@@ -570,6 +571,7 @@ def iterative_NER(nlp_func, sentence_list, threshold_rate=0.0005):
     output = [x for x in output if output[x] >= threshold_rate * len(sentence_list)]
 
     return output
+
 
 def process_sentences(funcs, sentence_list, threshold_rate=0.0005):
     '''
@@ -614,6 +616,7 @@ def process_sentences(funcs, sentence_list, threshold_rate=0.0005):
 
     return output, align_rate
 
+
 def top_names(name_list, novel, top_num=20):
     '''
     A function to return the top names in a novel and their frequencies.
@@ -633,19 +636,6 @@ def top_names(name_list, novel, top_num=20):
     name_frequency = list(name_frequency[0])
 
     return name_frequency, names
-
-
-def calculate_align_rate(sentence_list):
-    '''
-    Function to calculate the align_rate of the whole novel
-    :param sentence_list: the list of sentence of the whole novel.
-    :return: the align rate of the novel.
-    '''
-    afinn = Afinn()
-    sentiment_score = [afinn.score(x) for x in sentence_list]
-    align_rate = np.sum(sentiment_score) / len(np.nonzero(sentiment_score)[0]) * -2
-
-    return align_rate
 
 
 def calculate_matrix(name_list, sentence_list, align_rate):
@@ -714,7 +704,6 @@ def matrix_to_edge_list_v2(matrix, mode, name_list, place_list):
     '''
     edge_list = []
     shape = matrix.shape[0]
-    # lower_tri_loc = list(zip(*np.where(np.triu(np.ones([shape, shape])) == 0)))
     A = np.ones([shape, shape])
     middle = len(name_list)
     A[0:middle, 0:middle] = np.zeros([middle, middle])
@@ -734,6 +723,7 @@ def matrix_to_edge_list_v2(matrix, mode, name_list, place_list):
             edge_list.append((combined_list[i[0]], combined_list[i[1]], {'weight': weight[i], 'color': color[i]}))
 
     return edge_list
+
 
 def plot_graph(name_list, name_frequency, matrix, plt_name, mode, path=''):
     '''
@@ -759,7 +749,6 @@ def plot_graph(name_list, name_frequency, matrix, plt_name, mode, path=''):
     edges = G.edges()
     weights = [G[u][v]['weight'] for u, v in edges]
     colors = [G[u][v]['color'] for u, v in edges]
-    #print(f"edge_list: {edge_list}")
     if mode == 'co-occurrence':
         nx.draw(G, pos, node_color='#A0CBE2', node_size=np.sqrt(normalized_frequency) * 4000, edge_cmap=plt.cm.Blues,
                 linewidths=10, font_size=35, labels=label, edge_color=colors, with_labels=True, width=weights)
@@ -791,42 +780,16 @@ def plot_graph_v2(name_list, name_frequency, place_list, place_frequency, matrix
 
     plt.figure(figsize=(20, 20))
     G = nx.Graph()
-    print(name_list)
-    print(place_list)
     name_list_with_attr = [(n, {"color": "red"}) for n in name_list]
-    print(name_list_with_attr)
     G.add_nodes_from(name_list_with_attr)
-    # print("^^^^^^^^^^^^^^^^")
-    # print(sorted(G.nodes(data=True), key=str))
-    # # for v in G.nodes():
-    # #     print(G[v])
-    # print("^^^^^^^^^^^^^^^^")
     place_list_with_attr = [(p, {"color": 'blue'}) for p in place_list]
     combined = name_list_with_attr + place_list_with_attr
     G.add_nodes_from(combined)
-    # print("^^^^^^^^^^^^^^^^")
-    # for v in G.nodes():
-    #     print(G[v])
-    # print("^^^^^^^^^^^^^^^^")
     G.add_edges_from(edge_list)
-    # print(f"edge_list: {edge_list}")
     pos = nx.circular_layout(G)
-    print(f"pos: {pos}")
-    edges = G.edges()
-    nodes = G.nodes()
-    weights = [G[u][v]['weight'] for u, v in edges]
-    # print("$$$$$$$")
-    # print(G.nodes(data=True))
-    # print("------")
-    # for v in nodes:
-    #     print(G[v])
-    # print("------")
-    # for u, v in edges:
-    #     print(G[u][v])
-    # print("------")
-    # node_colors = [G[v]['color'] for v in nodes]
-    edge_colors = [G[u][v]['color'] for u, v in edges]
 
+    edges = G.edges()
+    edge_colors = [G[u][v]['color'] for u, v in edges]
 
     if mode == 'co-occurrence':
         nx.draw(G, pos, node_size=np.sqrt(normalized_frequency) * 4000, edge_cmap=plt.cm.Blues,
@@ -840,6 +803,7 @@ def plot_graph_v2(name_list, name_frequency, place_list, place_frequency, matrix
 
     plt.savefig("output/" + path + plt_name + '.png')
     plt.show()
+
 
 def plot_graph_v3(name_list, name_frequency, place_list, place_frequency, matrix, plt_name, mode, path=''):
     '''
@@ -866,7 +830,6 @@ def plot_graph_v3(name_list, name_frequency, place_list, place_frequency, matrix
     combined = name_list_with_attr + place_list_with_attr
     G.add_nodes_from(combined)
     G.add_edges_from(edge_list)
-    #pos = nx.circular_layout(G)
     pos = nx.get_node_attributes(G, 'pos')
     edges = G.edges()
 
@@ -887,6 +850,7 @@ def plot_graph_v3(name_list, name_frequency, place_list, place_frequency, matrix
     
     plt.show()
     return
+
 
 synonym = dict()
 harry = ['harry', 'harry potter', 'potter']
